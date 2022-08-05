@@ -56,9 +56,31 @@ struct ContentView: View {
             })
         }
         #else
-        Text("macOS")
+        NavigationView {
+            VStack {
+                ForEach(StackSelection.allCases, id: \.self) { item in
+                    Button(action: { selection = item }) {
+                        Label(item.rawValue, systemImage: "globe")
+                    }
+                }
+            }
+            .toolbar(content: {
+                Button(action: toggleSidebar) {
+                    Label("Toggle Sidebar", systemImage: "sidebar.left")
+                        .foregroundColor(.accentColor)
+                }
+            })
+            SelectionScreen(selection: selection)
+        }
         #endif
     }
+
+    #if os(macOS)
+    private func toggleSidebar() {
+        guard let firstResponder = NSApp.keyWindow?.firstResponder else { return }
+        firstResponder.tryToPerform(#selector(NSSplitViewController.toggleSidebar(_:)), with: nil)
+    }
+    #endif
 }
 
 struct SelectionScreen: View {
@@ -102,6 +124,12 @@ struct SelectionScreen: View {
                 }
                 self.navigationPath = navigationPath
             }
+            #else
+            var navigationPath = self.navigationPath
+            while !navigationPath.isEmpty {
+                navigationPath.removeLast()
+            }
+            self.navigationPath = navigationPath
             #endif
         }
     }
