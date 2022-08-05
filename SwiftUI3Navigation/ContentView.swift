@@ -23,34 +23,48 @@ enum ButtonScreens: String, Hashable, Codable, CaseIterable {
     case second
 }
 
-enum TabItems: String, Hashable, CaseIterable {
+enum StackSelection: String, Hashable, CaseIterable {
     case first
     case second
 }
 
 struct ContentView: View {
-    @State private var navigationPath = TabItems.allCases.reduce([:]) { result, tabItem in
-        var mutableResult = result
-        mutableResult[tabItem] = NavigationPath()
-        return mutableResult
-    }
-    @State private var tabSelection: TabItems = .first
+    @State private var selection: StackSelection = .first
 
     var body: some View {
-        TabView(selection: $tabSelection) {
-            ForEach(TabItems.allCases, id: \.self) { tabItem in
-                TabScreen()
-                    .tag(tabItem)
-                    .tabItem {
-                        Text(tabItem.rawValue)
-                    }
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            TabView(selection: $selection) {
+                ForEach(StackSelection.allCases, id: \.self) { tabItem in
+                    SelectionScreen(selection: selection)
+                        .tag(tabItem)
+                        .tabItem {
+                            Image(systemName: "globe")
+                            Text(tabItem.rawValue)
+                        }
+                }
             }
+        } else {
+            NavigationSplitView(sidebar: {
+                ForEach(StackSelection.allCases, id: \.self) { item in
+                    Button(action: { selection = item }) {
+                        Label(item.rawValue, systemImage: "globe")
+                    }
+                }
+            }, detail: {
+                SelectionScreen(selection: selection)
+            })
         }
+        #else
+        Text("macOS")
+        #endif
     }
 }
 
-struct TabScreen: View {
+struct SelectionScreen: View {
     @State private var navigationPath = NavigationPath()
+
+    let selection: StackSelection
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -74,10 +88,21 @@ struct TabScreen: View {
             }
             .navigationDestination(for: NavigationLinkScreens.self, destination: NavigationLinkScreen.init(_:))
             .navigationDestination(for: ButtonScreens.self, destination: ButtonScreen.init(_:))
-            .navigationTitle("SwiftUI3 Nav")
+            .navigationTitle("SwiftUI3 Nav \(selection.rawValue)")
         }
         .onChange(of: navigationPath) { newValue in
             print("navigation path", newValue)
+        }
+        .onChange(of: selection) { newValue in
+            #if os(iOS)
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                var navigationPath = self.navigationPath
+                while !navigationPath.isEmpty {
+                    navigationPath.removeLast()
+                }
+                self.navigationPath = navigationPath
+            }
+            #endif
         }
     }
 }
