@@ -23,7 +23,33 @@ enum ButtonScreens: String, Hashable, Codable, CaseIterable {
     case second
 }
 
+enum TabItems: String, Hashable, CaseIterable {
+    case first
+    case second
+}
+
 struct ContentView: View {
+    @State private var navigationPath = TabItems.allCases.reduce([:]) { result, tabItem in
+        var mutableResult = result
+        mutableResult[tabItem] = NavigationPath()
+        return mutableResult
+    }
+    @State private var tabSelection: TabItems = .first
+
+    var body: some View {
+        TabView(selection: $tabSelection) {
+            ForEach(TabItems.allCases, id: \.self) { tabItem in
+                TabScreen()
+                    .tag(tabItem)
+                    .tabItem {
+                        Text(tabItem.rawValue)
+                    }
+            }
+        }
+    }
+}
+
+struct TabScreen: View {
     @State private var navigationPath = NavigationPath()
 
     var body: some View {
